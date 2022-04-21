@@ -1,6 +1,9 @@
 package me.jamie.sampleredis.todo;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
@@ -18,11 +21,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class TodoController {
 
     private final TodoService todoService;
+    private static final Map<Long, Todo> localStore = new ConcurrentHashMap<>();
 
     @TimeTrace
     @GetMapping
     public List<Todo> list() {
+        List<Todo> todos = todoService.getTodos();
+        System.out.println(todos.get(0));
+        todos.stream().forEach(todo -> localStore.put(todo.getId(), todo));
+        return todos;
+    }
+
+    @TimeTrace
+    @GetMapping("/h2")
+    public List<Todo> h2db() {
         return todoService.getTodos();
+    }
+
+    @TimeTrace
+    @GetMapping("/local")
+    public List<Todo> localCache() {
+        return new ArrayList<>(localStore.values());
     }
 
     private final InitService initService;

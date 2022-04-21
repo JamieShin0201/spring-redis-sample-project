@@ -14,16 +14,18 @@ import org.springframework.util.StopWatch;
 public class TimeTracer {
 
     @Around("@annotation(me.jamie.sampleredis.aop.TimeTrace)")
-    public void traceTime(ProceedingJoinPoint joinPoint) throws Throwable {
+    public Object traceTime(ProceedingJoinPoint joinPoint) throws Throwable {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
-        joinPoint.proceed();
-        stopWatch.stop();
+        try {
+            return joinPoint.proceed();
+        } finally {
+            stopWatch.stop();
+            long totalTimeMillis = stopWatch.getTotalTimeNanos();
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            String methodName = signature.getMethod().getName();
 
-        long totalTimeMillis = stopWatch.getTotalTimeNanos();
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        String methodName = signature.getMethod().getName();
-
-        log.info("실행 메서드: {}, 실행시간: {}ns", methodName, totalTimeMillis);
+            log.info("실행 메서드: {}, 실행시간: {}ns", methodName, totalTimeMillis);
+        }
     }
 }
