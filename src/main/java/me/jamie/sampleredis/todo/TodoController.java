@@ -9,6 +9,7 @@ import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import me.jamie.sampleredis.aop.TimeTrace;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +28,6 @@ public class TodoController {
     @GetMapping
     public List<Todo> list() {
         List<Todo> todos = todoService.getTodos();
-        System.out.println(todos.get(0));
         todos.stream().forEach(todo -> localStore.put(todo.getId(), todo));
         return todos;
     }
@@ -42,6 +42,13 @@ public class TodoController {
     @GetMapping("/local")
     public List<Todo> localCache() {
         return new ArrayList<>(localStore.values());
+    }
+
+    @TimeTrace
+    @GetMapping("/redis")
+    @Cacheable(value = "globalCache", key = "1")
+    public List<Todo> globalCache() {
+        return todoService.getTodos();
     }
 
     private final InitService initService;
@@ -59,7 +66,7 @@ public class TodoController {
         private final EntityManager em;
 
         public void doInit() {
-            IntStream.range(0, 100)
+            IntStream.range(0, 10000)
                 .forEach(i -> {
                     Todo todo = Todo.builder()
                         .content("content")
